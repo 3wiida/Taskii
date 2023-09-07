@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Taskii</string>
+    <string name="welcome_to_taskii">Welcome to Taskii</string>
+    <string name="naming_screen_body">Hey! 🌟 We\'re thrilled to have you with us. To make your time here even more enjoyable, could you share your name with us?</string>
+</resources>

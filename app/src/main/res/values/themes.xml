@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.Taskii" parent="android:Theme.Material.Light.NoActionBar" >
+        <item name="android:statusBarColor">#FFFFFF</item>
+    </style>
+    <style name="Theme.TaskiiSplashScreen" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/taskii_ic</item>
+        <item name="windowSplashScreenAnimationDuration">5000</item>
+        <item name="postSplashScreenTheme">@style/Theme.Taskii</item>
+    </style>
+</resources>
