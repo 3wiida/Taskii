@@ -11,6 +11,7 @@ import androidx.navigation.navigation
 import com.mahmoudibrahem.taskii.navigation.screens.HomeScreens
 import com.mahmoudibrahem.taskii.navigation.screens.OnboardingScreens
 import com.mahmoudibrahem.taskii.ui.screens.home.HomeScreen
+import com.mahmoudibrahem.taskii.ui.screens.search.SearchScreen
 import com.mahmoudibrahem.taskii.util.Constants.BOTTOM_BAR_GRAPH_ROUTE
 
 fun NavGraphBuilder.bottomBarNavGraph(navController: NavHostController) {
@@ -19,7 +20,10 @@ fun NavGraphBuilder.bottomBarNavGraph(navController: NavHostController) {
         startDestination = HomeScreens.Home.route
     ) {
         composable(route = HomeScreens.Home.route) {
-            HomeScreen()
+            HomeScreen(navController = navController)
+        }
+        composable(route = HomeScreens.Search.route) {
+            SearchScreen(navController = navController)
         }
     }
 }

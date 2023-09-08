@@ -6,6 +6,7 @@ object Constants {
     const val ONBOARDING_SCREEN_ROUTE = "onboarding_screen_route"
     const val NAMING_USER_SCREEN = "naming_user_screen"
     const val HOME_SCREEN_ROUTE="home_screen_route"
+    const val SEARCH_SCREEN_ROUTE="search_screen_route"
 
     //NavGraphs Routes
     const val ONBOARDING_GRAPH_ROUTE="onboarding_graph_route"

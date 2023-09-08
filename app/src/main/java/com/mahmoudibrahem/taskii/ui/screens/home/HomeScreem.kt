@@ -1,11 +1,20 @@
 package com.mahmoudibrahem.taskii.ui.screens.home
 
 import android.annotation.SuppressLint
+import android.content.Context
+import android.widget.Toast
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -34,29 +43,43 @@ import androidx.compose.material.Scaffold
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
+import androidx.navigation.NavOptions
 import com.mahmoudibrahem.taskii.R
-import com.mahmoudibrahem.taskii.model.CheckListItem
+import com.mahmoudibrahem.taskii.model.CheckItem
 import com.mahmoudibrahem.taskii.model.Task
+import com.mahmoudibrahem.taskii.model.relations.TaskWithCheckItems
+import com.mahmoudibrahem.taskii.navigation.screens.HomeScreens
 import com.mahmoudibrahem.taskii.ui.theme.AppGreenColor
 import com.mahmoudibrahem.taskii.ui.theme.AppMainColor
 import com.mahmoudibrahem.taskii.ui.theme.AppSecondaryColor
@@ -66,9 +89,34 @@ import com.mahmoudibrahem.taskii.util.shadow
 
 @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
 @Composable
-fun HomeScreen() {
+fun HomeScreen(
+    viewModel: HomeViewModel = hiltViewModel(),
+    context: Context = LocalContext.current,
+    navController: NavController
+) {
     Scaffold(
-        bottomBar = { AppBottomBar() }
+        bottomBar = {
+            AppBottomBar(
+                onAddClicked = {
+                    Toast.makeText(context, "Added", Toast.LENGTH_SHORT).show()
+                    viewModel.upsertTask(
+                        Task(
+                            name = "Gemii App",
+                            description = "Creating user flow",
+                            deadline = "20, Oc, 14:00",
+                            progress = 0.5f,
+                        )
+                    )
+                    viewModel.upsertCheckItem(
+                        CheckItem(
+                            taskId = 1,
+                            content = "test",
+                            isComplete = false
+                        )
+                    )
+                }
+            )
+        }
     ) {
         Column(
             modifier = Modifier
@@ -83,63 +131,29 @@ fun HomeScreen() {
         ) {
             HomeTopBar(
                 onMenuButtonClicked = {},
-                onSearchButtonClicked = {},
+                onSearchButtonClicked = {
+                    navController.navigate(
+                        route = HomeScreens.Search.route
+                    )
+                },
                 onCalendarButtonClicked = {}
             )
             Spacer(modifier = Modifier.height(24.dp))
             GreetingSection(
-                username = "Mahmoud",
-                tasksCount = 18
+                username = viewModel.username.collectAsState(initial = "").value ?: "",
+                tasksCount = viewModel.allTasks.collectAsState().value.size
             )
             Spacer(modifier = Modifier.height(24.dp))
             TasksSection(
-                tasks = listOf(
-                    Task(
-                        1,
-                        "Gemii App",
-                        "Creating userflow",
-                        "20, Oc, 14:00",
-                        0.33f
-                    ),
-                    Task(
-                        2,
-                        "Taskii App",
-                        "Creating UX mapping",
-                        " 20, Oc, 18:00",
-                        0.99f
-                    )
-                )
+                tasks = viewModel.allTasks.collectAsState().value,
+                onCardClicked = { viewModel.getCheckItemsOfTask(it) }
             )
             Spacer(modifier = Modifier.height(24.dp))
-            CheckListSection(
-                checkList = listOf(
-                    CheckListItem(
-                        1,
-                        "Creating UI design systerm",
-                        false
-                    ),
-                    CheckListItem(
-                        2,
-                        "Flow task for update",
-                        false
-                    ),
-                    CheckListItem(
-                        3,
-                        "Check Userflow and Architure Infomation bla bla bla",
-                        true
-                    ),
-                    CheckListItem(
-                        4,
-                        "This is my spacing for me of coures",
-                        false
-                    )
-                )
-            )
+            CheckListSection(checkList = viewModel.selectedTaskCheckItems.collectAsState().value)
         }
     }
 
 }
-
 
 
 @Composable
@@ -199,7 +213,7 @@ fun GreetingSection(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Hello,$username!",
+            text = "Hello, $username!",
             fontFamily = SfDisplay,
             fontSize = 16.sp,
             color = LightTextColor
@@ -243,14 +257,24 @@ fun GreetingSection(
 }
 
 @Composable
-fun TasksSection(tasks: List<Task>) {
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+fun TasksSection(
+    tasks: List<Task>,
+    onCardClicked: (Int) -> Unit
+) {
+
+    var selectedItemIndex by remember {
+        mutableIntStateOf(0)
+    }
+
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.Start)) {
         items(tasks.size) { index ->
             TaskCard(
-                taskName = tasks[index].name,
-                taskDescription = tasks[index].description,
-                progress = tasks[index].progress,
-                deadLine = tasks[index].deadline
+                task = tasks[index],
+                onCardClicked = {
+                    onCardClicked(tasks[index].id)
+                    selectedItemIndex = index
+                },
+                isSelected = index == selectedItemIndex
             )
         }
     }
@@ -260,12 +284,19 @@ fun TasksSection(tasks: List<Task>) {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LazyItemScope.TaskCard(
-    taskName: String,
-    taskDescription: String,
-    progress: Float,
-    deadLine: String,
-    isSelected: Boolean = true
+    task: Task,
+    isSelected: Boolean = true,
+    onCardClicked: (Int) -> Unit
 ) {
+    val borderColor = animateColorAsState(
+        targetValue = if (isSelected) AppSecondaryColor else Color.Transparent,
+        label = "",
+        animationSpec = tween(200)
+    )
+    val progressValue = remember { Animatable(initialValue = 0f) }
+    LaunchedEffect(key1 = null) {
+        progressValue.animateTo(targetValue = task.progress, animationSpec = tween(500))
+    }
     Surface(
         modifier = Modifier
             .animateItemPlacement()
@@ -278,10 +309,13 @@ fun LazyItemScope.TaskCard(
             )
             .border(
                 width = 1.dp,
-                color = if (isSelected) AppSecondaryColor else Color.Transparent,
+                color = borderColor.value,
                 shape = RoundedCornerShape(16.dp)
             )
-            .clip(RoundedCornerShape(16.dp)),
+            .clip(RoundedCornerShape(16.dp))
+            .clickable {
+                onCardClicked(task.id)
+            },
         elevation = 3.dp
     ) {
         Column(
@@ -290,7 +324,7 @@ fun LazyItemScope.TaskCard(
             horizontalAlignment = Alignment.Start
         ) {
             Text(
-                text = taskName,
+                text = task.name,
                 fontFamily = SfDisplay,
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp,
@@ -299,7 +333,7 @@ fun LazyItemScope.TaskCard(
                 maxLines = 1
             )
             Text(
-                text = taskDescription,
+                text = task.description,
                 fontFamily = SfDisplay,
                 fontWeight = FontWeight.Normal,
                 fontSize = 12.sp,
@@ -321,7 +355,7 @@ fun LazyItemScope.TaskCard(
                     color = Color.Black
                 )
                 Text(
-                    text = "${(progress * 100).toInt()}%",
+                    text = "${(task.progress * 100).toInt()}%",
                     fontFamily = SfDisplay,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
@@ -330,17 +364,19 @@ fun LazyItemScope.TaskCard(
                 )
             }
             LinearProgressIndicator(
-                progress = progress,
+                progress = progressValue.value,
                 strokeCap = StrokeCap.Round,
                 color = AppGreenColor
             )
             Text(
-                text = "Deadline: $deadLine",
+                text = "Deadline: ${task.deadline}",
                 color = AppMainColor,
-                modifier = Modifier.background(
-                    color = Color(0xFFFFE8C8),
-                    shape = RoundedCornerShape(4.dp)
-                ).padding(4.dp),
+                modifier = Modifier
+                    .background(
+                        color = Color(0xFFFFE8C8),
+                        shape = RoundedCornerShape(4.dp)
+                    )
+                    .padding(4.dp),
                 maxLines = 1
             )
         }
@@ -348,7 +384,7 @@ fun LazyItemScope.TaskCard(
 }
 
 @Composable
-fun CheckListSection(checkList: List<CheckListItem>) {
+fun CheckListSection(checkList: List<CheckItem>) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.Start,
@@ -363,8 +399,9 @@ fun CheckListSection(checkList: List<CheckListItem>) {
         )
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
+            modifier = Modifier.fillMaxWidth(),
+
+            ) {
             items(checkList.size) { index ->
                 CheckListItem(item = checkList[index])
             }
@@ -374,15 +411,34 @@ fun CheckListSection(checkList: List<CheckListItem>) {
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun LazyItemScope.CheckListItem(item: CheckListItem) {
+fun LazyItemScope.CheckListItem(item: CheckItem) {
+    var isCompleted by remember {
+        mutableStateOf(item.isComplete)
+    }
     val lineScale = animateFloatAsState(
-        targetValue = if (item.isComplete) 1f else 0f,
+        targetValue = if (isCompleted) 1f else 0f,
         label = "",
         animationSpec = tween(durationMillis = 1000)
     )
+    val itemAlpha = remember { Animatable(initialValue = 0f) }
+
+    LaunchedEffect(null) {
+        itemAlpha.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(
+                durationMillis = 250,
+                easing = LinearEasing
+            )
+        )
+    }
+
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .graphicsLayer {
+                alpha = itemAlpha.value
+            }
             .background(
                 color = Color(0x2652465F),
                 shape = RoundedCornerShape(16.dp)
@@ -394,9 +450,9 @@ fun LazyItemScope.CheckListItem(item: CheckListItem) {
         horizontalArrangement = Arrangement.Start
     ) {
         RadioButton(
-            selected = item.isComplete,
+            selected = isCompleted,
             onClick = {
-
+                isCompleted = !isCompleted
             },
             colors = RadioButtonDefaults.colors(
                 selectedColor = Color.Gray,
@@ -425,10 +481,12 @@ fun LazyItemScope.CheckListItem(item: CheckListItem) {
     }
 }
 
-@SuppressLint("UnusedBoxWithConstraintsScope")
-@Preview
 @Composable
-fun AppBottomBar() {
+fun AppBottomBar(
+    onHomeClicked: () -> Unit = {},
+    onAnalyticsClicked: () -> Unit = {},
+    onAddClicked: () -> Unit = {},
+) {
 
     BoxWithConstraints(
         modifier = Modifier
@@ -473,7 +531,7 @@ fun AppBottomBar() {
             ) {
                 IconButton(
                     onClick = {
-
+                        onHomeClicked()
                     }
                 ) {
                     Icon(
@@ -485,7 +543,7 @@ fun AppBottomBar() {
                 }
                 IconButton(
                     onClick = {
-
+                        onAnalyticsClicked()
                     }
                 ) {
                     Icon(
@@ -515,7 +573,7 @@ fun AppBottomBar() {
         ) {
             IconButton(
                 onClick = {
-
+                    onAddClicked()
                 }
             ) {
                 Icon(
