@@ -12,7 +12,7 @@ android {
 
     defaultConfig {
         applicationId = "com.mahmoudibrahem.taskii"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -96,12 +96,21 @@ dependencies {
     implementation("com.google.accompanist:accompanist-pager-indicators:0.33.0-alpha")
 
     //DataStore
-    implementation("androidx.datastore:datastore-preferences:1.0.0-rc01")
+    implementation("androidx.datastore:datastore-preferences:1.1.0-alpha05")
 
     //System UI Controller
     implementation("com.google.accompanist:accompanist-systemuicontroller:0.27.0")
 
 
     //Gson
-    implementation("com.google.code.gson:gson:2.8.8")
+    implementation("com.google.code.gson:gson:2.9.0")
+
+    //Date time picker
+    implementation ("com.maxkeppeler.sheets-compose-dialogs:core:1.2.0")
+
+    // CALENDAR
+    implementation ("com.maxkeppeler.sheets-compose-dialogs:calendar:1.2.0")
+
+    // CLOCK
+    implementation ("com.maxkeppeler.sheets-compose-dialogs:clock:1.2.0")
 }

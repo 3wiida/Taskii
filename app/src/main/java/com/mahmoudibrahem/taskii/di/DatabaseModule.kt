@@ -32,6 +32,10 @@ object DatabaseModule {
 
     @Provides
     @Singleton
+    fun provideCheckItemDao(db: TaskiiDatabase) = db.getCheckItemDao()
+
+    @Provides
+    @Singleton
     fun provideDatabaseRepository(databaseRepositoryImpl: DatabaseRepositoryImpl): DatabaseRepository {
         return databaseRepositoryImpl
     }

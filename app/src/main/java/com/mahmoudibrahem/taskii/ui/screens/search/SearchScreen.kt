@@ -53,6 +53,9 @@ fun SearchScreen(
     viewModel: SearchViewModel = hiltViewModel(),
     navController: NavController
 ) {
+    var isFirstOpen by remember {
+        mutableStateOf(true)
+    }
     var query by remember {
         mutableStateOf("")
     }
@@ -76,6 +79,7 @@ fun SearchScreen(
                 },
                 onSearchClicked = {
                     viewModel.searchForTasks(searchQuery = query)
+                    isFirstOpen = false
                 }
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -87,7 +91,10 @@ fun SearchScreen(
             )
             Spacer(modifier = Modifier.height(8.dp))
             ResultsSection(resultsList = viewModel.searchResults.collectAsState().value)
-            SearchEmptyState(resultsList = viewModel.searchResults.collectAsState().value)
+            SearchEmptyState(
+                resultsList = viewModel.searchResults.collectAsState().value,
+                isFirstOpen = isFirstOpen
+            )
         }
     }
 }
@@ -190,7 +197,7 @@ fun SearchWidget(
 fun ResultsSection(
     resultsList: List<Task> = emptyList()
 ) {
-    AnimatedVisibility(visible = resultsList.isNotEmpty(),enter = fadeIn(), exit = fadeOut()) {
+    AnimatedVisibility(visible = resultsList.isNotEmpty(), enter = fadeIn(), exit = fadeOut()) {
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
@@ -209,9 +216,14 @@ fun ResultsSection(
 
 @Composable
 fun SearchEmptyState(
-    resultsList: List<Task> = emptyList()
+    resultsList: List<Task> = emptyList(),
+    isFirstOpen: Boolean
 ) {
-    AnimatedVisibility(visible = resultsList.isEmpty(), enter = fadeIn(), exit = fadeOut()) {
+    AnimatedVisibility(
+        visible = (resultsList.isEmpty() && !isFirstOpen),
+        enter = fadeIn(),
+        exit = fadeOut()
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()

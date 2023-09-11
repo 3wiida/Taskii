@@ -1,20 +1,19 @@
 package com.mahmoudibrahem.taskii.ui.screens.home
 
 import android.annotation.SuppressLint
-import android.content.Context
-import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -43,6 +42,7 @@ import androidx.compose.material.Scaffold
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -52,33 +52,33 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.toLowerCase
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.navigation.NavController
-import androidx.navigation.NavOptions
 import com.mahmoudibrahem.taskii.R
 import com.mahmoudibrahem.taskii.model.CheckItem
 import com.mahmoudibrahem.taskii.model.Task
-import com.mahmoudibrahem.taskii.model.relations.TaskWithCheckItems
 import com.mahmoudibrahem.taskii.navigation.screens.HomeScreens
 import com.mahmoudibrahem.taskii.ui.theme.AppGreenColor
 import com.mahmoudibrahem.taskii.ui.theme.AppMainColor
@@ -91,29 +91,17 @@ import com.mahmoudibrahem.taskii.util.shadow
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
-    context: Context = LocalContext.current,
-    navController: NavController
+    navController: NavController,
+    lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
 ) {
+
+    var selectedTaskIndex by remember { mutableIntStateOf(0) }
+
     Scaffold(
         bottomBar = {
             AppBottomBar(
                 onAddClicked = {
-                    Toast.makeText(context, "Added", Toast.LENGTH_SHORT).show()
-                    viewModel.upsertTask(
-                        Task(
-                            name = "Gemii App",
-                            description = "Creating user flow",
-                            deadline = "20, Oc, 14:00",
-                            progress = 0.5f,
-                        )
-                    )
-                    viewModel.upsertCheckItem(
-                        CheckItem(
-                            taskId = 1,
-                            content = "test",
-                            isComplete = false
-                        )
-                    )
+                    navController.navigate(route = HomeScreens.CreateTask.route)
                 }
             )
         }
@@ -131,25 +119,51 @@ fun HomeScreen(
         ) {
             HomeTopBar(
                 onMenuButtonClicked = {},
+                onCalendarButtonClicked = {},
                 onSearchButtonClicked = {
                     navController.navigate(
                         route = HomeScreens.Search.route
                     )
-                },
-                onCalendarButtonClicked = {}
+                }
             )
             Spacer(modifier = Modifier.height(24.dp))
             GreetingSection(
                 username = viewModel.username.collectAsState(initial = "").value ?: "",
-                tasksCount = viewModel.allTasks.collectAsState().value.size
+                tasksCount = viewModel.tasks.size
             )
             Spacer(modifier = Modifier.height(24.dp))
             TasksSection(
-                tasks = viewModel.allTasks.collectAsState().value,
-                onCardClicked = { viewModel.getCheckItemsOfTask(it) }
+                tasks = viewModel.tasks,
+                selectedItemIndex = selectedTaskIndex,
+                onTaskClicked = { index, id ->
+                    viewModel.getCheckListByTaskId(id)
+                    selectedTaskIndex = index
+                }
             )
             Spacer(modifier = Modifier.height(24.dp))
-            CheckListSection(checkList = viewModel.selectedTaskCheckItems.collectAsState().value)
+            AnimatedVisibility(visible = viewModel.tasks.isNotEmpty(), enter = fadeIn(), exit = fadeOut()) {
+                CheckListSection(
+                    checkList = viewModel.selectedTaskCheckList,
+                    onCompleteCheckItem = { item, isCompleted, index ->
+                        viewModel.saveTaskProcess(
+                            checkItem = item,
+                            taskIndex = selectedTaskIndex,
+                            checkItemIndex = index,
+                            isCheckItemCompleted = isCompleted
+                        )
+                    }
+                )
+            }
+            DisposableEffect(key1 = lifecycleOwner) {
+                val observer = LifecycleEventObserver { _, event ->
+                    if (event == Lifecycle.Event.ON_RESUME) {
+                        viewModel.getTasks()
+                        viewModel.getCheckListByTaskId(taskId = if (viewModel.tasks.isEmpty()) 1 else viewModel.tasks[selectedTaskIndex].id)
+                    }
+                }
+                lifecycleOwner.lifecycle.addObserver(observer)
+                onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+            }
         }
     }
 
@@ -259,21 +273,17 @@ fun GreetingSection(
 @Composable
 fun TasksSection(
     tasks: List<Task>,
-    onCardClicked: (Int) -> Unit
+    selectedItemIndex: Int = 0,
+    onTaskClicked: (index: Int, id: Int) -> Unit
 ) {
-
-    var selectedItemIndex by remember {
-        mutableIntStateOf(0)
-    }
-
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.Start)) {
+    LazyRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.Start)
+    ) {
         items(tasks.size) { index ->
             TaskCard(
                 task = tasks[index],
-                onCardClicked = {
-                    onCardClicked(tasks[index].id)
-                    selectedItemIndex = index
-                },
+                onTaskClicked = { id -> onTaskClicked(index, id) },
                 isSelected = index == selectedItemIndex
             )
         }
@@ -286,17 +296,18 @@ fun TasksSection(
 fun LazyItemScope.TaskCard(
     task: Task,
     isSelected: Boolean = true,
-    onCardClicked: (Int) -> Unit
+    onTaskClicked: (id: Int) -> Unit
 ) {
     val borderColor = animateColorAsState(
         targetValue = if (isSelected) AppSecondaryColor else Color.Transparent,
         label = "",
-        animationSpec = tween(200)
+        animationSpec = tween(100)
     )
-    val progressValue = remember { Animatable(initialValue = 0f) }
-    LaunchedEffect(key1 = null) {
-        progressValue.animateTo(targetValue = task.progress, animationSpec = tween(500))
-    }
+    val progressValue = animateFloatAsState(
+        targetValue = task.progress,
+        label = "",
+        animationSpec = tween(800)
+    )
     Surface(
         modifier = Modifier
             .animateItemPlacement()
@@ -313,9 +324,10 @@ fun LazyItemScope.TaskCard(
                 shape = RoundedCornerShape(16.dp)
             )
             .clip(RoundedCornerShape(16.dp))
-            .clickable {
-                onCardClicked(task.id)
-            },
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) { onTaskClicked(task.id) },
         elevation = 3.dp
     ) {
         Column(
@@ -355,7 +367,7 @@ fun LazyItemScope.TaskCard(
                     color = Color.Black
                 )
                 Text(
-                    text = "${(task.progress * 100).toInt()}%",
+                    text = "${(progressValue.value * 100).toInt()}%",
                     fontFamily = SfDisplay,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
@@ -369,7 +381,9 @@ fun LazyItemScope.TaskCard(
                 color = AppGreenColor
             )
             Text(
-                text = "Deadline: ${task.deadline}",
+                text = "Deadline: ${
+                    task.deadline.month.name.lowercase().slice(0..2)
+                } ${task.deadline.dayOfMonth} at ${task.deadline.hour}:${task.deadline.minute}",
                 color = AppMainColor,
                 modifier = Modifier
                     .background(
@@ -377,14 +391,18 @@ fun LazyItemScope.TaskCard(
                         shape = RoundedCornerShape(4.dp)
                     )
                     .padding(4.dp),
-                maxLines = 1
+                maxLines = 1,
+                fontSize = 12.sp
             )
         }
     }
 }
 
 @Composable
-fun CheckListSection(checkList: List<CheckItem>) {
+fun CheckListSection(
+    checkList: List<CheckItem>,
+    onCompleteCheckItem: (CheckItem, Boolean, Int) -> Unit
+) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.Start,
@@ -400,39 +418,41 @@ fun CheckListSection(checkList: List<CheckItem>) {
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.fillMaxWidth(),
-
-            ) {
+        ) {
             items(checkList.size) { index ->
-                CheckListItem(item = checkList[index])
+                CheckListItem(
+                    item = checkList[index],
+                    onCompleteCheckItem = { item, isCompleted ->
+                        onCompleteCheckItem(
+                            item,
+                            isCompleted,
+                            index
+                        )
+                    }
+                )
             }
         }
     }
 }
 
+@SuppressLint("UnusedTransitionTargetStateParameter")
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun LazyItemScope.CheckListItem(item: CheckItem) {
-    var isCompleted by remember {
-        mutableStateOf(item.isComplete)
-    }
-    val lineScale = animateFloatAsState(
-        targetValue = if (isCompleted) 1f else 0f,
-        label = "",
-        animationSpec = tween(durationMillis = 1000)
-    )
+fun LazyItemScope.CheckListItem(
+    item: CheckItem,
+    onCompleteCheckItem: (CheckItem, Boolean) -> Unit
+) {
+    var isComplete by remember(item.taskId) { mutableStateOf(item.isComplete) }
+    val lineScale = animateFloatAsState(targetValue = if (isComplete) 1f else 0f, label = "")
     val itemAlpha = remember { Animatable(initialValue = 0f) }
-
     LaunchedEffect(null) {
         itemAlpha.animateTo(
             targetValue = 1f,
             animationSpec = tween(
-                durationMillis = 250,
-                easing = LinearEasing
+                durationMillis = 500,
             )
         )
     }
-
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -440,7 +460,7 @@ fun LazyItemScope.CheckListItem(item: CheckItem) {
                 alpha = itemAlpha.value
             }
             .background(
-                color = Color(0x2652465F),
+                color = Color(0xFFF7F6FB),
                 shape = RoundedCornerShape(16.dp)
             )
             .offset(x = (-16).dp)
@@ -450,14 +470,15 @@ fun LazyItemScope.CheckListItem(item: CheckItem) {
         horizontalArrangement = Arrangement.Start
     ) {
         RadioButton(
-            selected = isCompleted,
-            onClick = {
-                isCompleted = !isCompleted
-            },
+            selected = isComplete,
             colors = RadioButtonDefaults.colors(
                 selectedColor = Color.Gray,
                 unselectedColor = AppGreenColor
-            )
+            ),
+            onClick = {
+                isComplete = !isComplete
+                onCompleteCheckItem(item, isComplete)
+            }
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
@@ -510,7 +531,6 @@ fun AppBottomBar(
                     .fillMaxWidth()
                     .height(80.dp)
                     .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-
                     .graphicsLayer {
                         compositingStrategy = CompositingStrategy.Offscreen
                     }
@@ -568,30 +588,20 @@ fun AppBottomBar(
                 )
                 .size(72.dp)
                 .clip(CircleShape)
-                .background(AppMainColor),
+                .background(AppMainColor)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) {
+                    onAddClicked()
+                },
             contentAlignment = Alignment.Center
         ) {
-            IconButton(
-                onClick = {
-                    onAddClicked()
-                }
-            ) {
-                Icon(
-                    painterResource(id = R.drawable.add_ic),
-                    contentDescription = "",
-                    tint = Color.Unspecified
-                )
-            }
+            Icon(
+                painterResource(id = R.drawable.add_ic),
+                contentDescription = "",
+                tint = Color.Unspecified
+            )
         }
     }
-
-
 }
-
-
-
-
-
-
-
-

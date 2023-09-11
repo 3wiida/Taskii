@@ -22,6 +22,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -114,12 +115,14 @@ fun UserNamingScreen(
                 onValueChange = { newName -> name = newName },
                 textStyle = TextStyle(fontFamily = SfDisplay),
                 placeholder = { Text(text = "Tap to enter your name", fontFamily = SfDisplay) },
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    textColor = Color.Black,
-                    containerColor = TextFieldColor,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = Color.Black,
+                    unfocusedTextColor = Color.Black,
                     focusedBorderColor = TextFieldColor,
                     unfocusedBorderColor = TextFieldColor,
-                    placeholderColor = Color.Gray
+                    focusedPlaceholderColor = Color.Gray,
+                    unfocusedPlaceholderColor = Color.Gray
+
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -140,9 +143,9 @@ fun UserNamingScreen(
             onClick = {
                 viewModel.saveUsername(name = name)
                 viewModel.saveOnboardingState()
-                navController.navigate(route = BOTTOM_BAR_GRAPH_ROUTE){
-                    popUpTo(route = ONBOARDING_GRAPH_ROUTE){
-                        inclusive=true
+                navController.navigate(route = BOTTOM_BAR_GRAPH_ROUTE) {
+                    popUpTo(route = ONBOARDING_GRAPH_ROUTE) {
+                        inclusive = true
                     }
                 }
             }

@@ -2,6 +2,7 @@ package com.mahmoudibrahem.taskii.model
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import java.time.LocalDateTime
 
 @Entity
 data class Task(
@@ -9,7 +10,7 @@ data class Task(
     val id: Int = 0,
     val name: String,
     val description: String,
-    val deadline: String,
-    val progress: Float,
+    val deadline: LocalDateTime,
+    var progress: Float,
     val isCompleted: Boolean = false,
 )

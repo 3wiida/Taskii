@@ -1,22 +1,23 @@
 package com.mahmoudibrahem.taskii.util
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.room.TypeConverter
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.mahmoudibrahem.taskii.model.CheckItem
+import java.time.LocalDateTime
 
+@RequiresApi(Build.VERSION_CODES.O)
 class Converters {
 
-     private val gson: Gson= Gson()
-
     @TypeConverter
-    fun fromCheckListToString(checkList: List<CheckItem>): String {
-        return gson.toJson(checkList)
+    fun toDateTime(dateTime: String): LocalDateTime {
+        return LocalDateTime.parse(dateTime)
     }
 
     @TypeConverter
-    fun fromStringToCheckList(str: String): List<CheckItem> {
-        val checkList = object : TypeToken<List<CheckItem>>() {}.type
-        return gson.fromJson(str, checkList)
+    fun fromDateTime(dateTime: LocalDateTime): String {
+        return dateTime.toString()
     }
 }
