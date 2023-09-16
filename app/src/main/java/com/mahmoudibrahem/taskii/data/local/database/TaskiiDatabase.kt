@@ -1,7 +1,5 @@
 package com.mahmoudibrahem.taskii.data.local.database
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters

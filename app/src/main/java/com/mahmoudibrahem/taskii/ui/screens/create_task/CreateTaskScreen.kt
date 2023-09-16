@@ -1,7 +1,6 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
-
 package com.mahmoudibrahem.taskii.ui.screens.create_task
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
@@ -24,6 +23,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
@@ -49,12 +49,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -79,17 +83,14 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateTaskScreen(
     navController: NavController,
     viewModel: CreateTaskViewModel = hiltViewModel()
 ) {
-    val selectedDate by remember {
-        mutableStateOf(LocalDate.now())
-    }
-    val selectedTime by remember {
-        mutableStateOf(LocalTime.now())
-    }
+    val selectedDate by remember { mutableStateOf(LocalDate.now()) }
+    val selectedTime by remember { mutableStateOf(LocalTime.now()) }
     val calendarState = rememberUseCaseState()
     val clockState = rememberUseCaseState()
     var taskName by remember { mutableStateOf("") }
@@ -247,7 +248,9 @@ fun DataEntrySection(
         CreateTaskScreenTextField(
             value = taskName,
             onValueChanged = { onTaskNameChanged(it) },
-            placeHolder = "Tap to add task name"
+            placeHolder = "Tap to add task name",
+            characterLimit = 50,
+            height = 64.dp
         )
         Spacer(modifier = Modifier.height(40.dp))
         CreateTaskScreenTextField(
@@ -255,7 +258,8 @@ fun DataEntrySection(
             onValueChanged = { onTaskDescriptionChanged(it) },
             placeHolder = "Tap to add task description",
             height = 120.dp,
-            singleLine = false
+            singleLine = false,
+            characterLimit = 250
         )
         Spacer(modifier = Modifier.height(16.dp))
         CreateTaskScreenTextField(
@@ -288,78 +292,6 @@ fun DataEntrySection(
     }
 }
 
-@Composable
-fun CreateTaskScreenTextField(
-    value: String,
-    onValueChanged: (String) -> Unit = {},
-    leadingIcon: Int? = null,
-    trailingIcon: Int? = null,
-    placeHolder: String,
-    height: Dp = 52.dp,
-    enabled: Boolean = true,
-    modifier: Modifier = Modifier,
-    singleLine: Boolean = true,
-    onDone: ((String) -> Unit)? = null
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = { onValueChanged(it) },
-        modifier = modifier
-            .fillMaxWidth()
-            .height(height)
-            .background(color = Color(0xFFEAE9F6), shape = RoundedCornerShape(16.dp)),
-        colors = TextFieldDefaults.outlinedTextFieldColors(
-            focusedBorderColor = Color.Transparent,
-            unfocusedBorderColor = Color.Transparent,
-            cursorColor = AppMainColor,
-            disabledBorderColor = Color.Transparent
-        ),
-        enabled = enabled,
-        leadingIcon = if (leadingIcon != null) {
-            {
-                Icon(
-                    painter = painterResource(id = leadingIcon),
-                    contentDescription = null,
-                    tint = Color.Unspecified
-                )
-            }
-        } else null,
-        trailingIcon = if (trailingIcon != null) {
-            {
-                Icon(
-                    painter = painterResource(id = trailingIcon),
-                    contentDescription = null,
-                    tint = Color.Unspecified
-                )
-            }
-        } else null,
-        textStyle = TextStyle(
-            color = Color(0xFF52465F),
-            fontFamily = SfDisplay,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Normal,
-            textAlign = TextAlign.Start
-        ),
-        placeholder = {
-            Text(
-                text = placeHolder,
-                color = Color(0xFFC2B6CF),
-                fontFamily = SfDisplay,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Normal
-            )
-        },
-        singleLine = singleLine,
-        keyboardOptions = KeyboardOptions(imeAction = if (onDone != null) ImeAction.Done else ImeAction.Default),
-        keyboardActions = KeyboardActions(
-            onDone = {
-                if (onDone != null) {
-                    onDone(value)
-                }
-            }
-        )
-    )
-}
 
 @Composable
 fun AddCheckListSection(
@@ -455,6 +387,13 @@ fun AddCheckListSection(
                         onDone = {
                             checkList.add(it)
                             newItemValue = ""
+                        },
+                        trailingIcon = R.drawable.check_icon,
+                        onTrailingIconClicked = {
+                            if(it.isNotEmpty()){
+                                checkList.add(it)
+                                newItemValue = ""
+                            }
                         }
                     )
                 }
@@ -509,9 +448,114 @@ fun LazyItemScope.CheckListItem(
             Icon(
                 painter = painterResource(id = R.drawable.delete_ic),
                 contentDescription = null,
-                tint = Color.Unspecified
+                tint = Color.Unspecified,
+                modifier = Modifier.offset(x = (16).dp)
             )
         }
-
     }
+}
+
+@SuppressLint("ModifierParameter")
+@Composable
+fun CreateTaskScreenTextField(
+    value: String,
+    onValueChanged: (String) -> Unit = {},
+    leadingIcon: Int? = null,
+    trailingIcon: Int? = null,
+    onTrailingIconClicked: (String) -> Unit = {},
+    placeHolder: String,
+    height: Dp = 58.dp,
+    characterLimit: Int = Int.MAX_VALUE,
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier,
+    singleLine: Boolean = true,
+    onDone: ((String) -> Unit)? = null
+) {
+    val textMeasurer = rememberTextMeasurer()
+    OutlinedTextField(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(height)
+            .background(color = Color(0xFFEAE9F6), shape = RoundedCornerShape(16.dp))
+            .padding(bottom = if (characterLimit == Int.MAX_VALUE) 0.dp else 10.dp)
+            .drawWithContent {
+                drawContent()
+                if (characterLimit != Int.MAX_VALUE) {
+                    drawText(
+                        textMeasurer = textMeasurer,
+                        text = "${value.length}/$characterLimit",
+                        style = TextStyle(
+                            color = if (value.length == characterLimit) Color(0xFFB00020) else Color(
+                                0xFFC2B6CF
+                            ),
+                            fontFamily = SfDisplay,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 12.sp,
+                        ),
+                        topLeft = Offset(x = size.width - 160, y = size.height - 40)
+                    )
+                }
+            },
+        colors = TextFieldDefaults.outlinedTextFieldColors(
+            focusedBorderColor = Color.Transparent,
+            unfocusedBorderColor = Color.Transparent,
+            cursorColor = AppMainColor,
+            disabledBorderColor = Color.Transparent
+        ),
+        leadingIcon = if (leadingIcon != null) {
+            {
+                Icon(
+                    painter = painterResource(id = leadingIcon),
+                    contentDescription = null,
+                    tint = Color.Unspecified
+                )
+            }
+        } else null,
+        trailingIcon = if (trailingIcon != null) {
+            {
+                IconButton(
+                    onClick = { onTrailingIconClicked(value) }
+                ) {
+                    Icon(
+                        painter = painterResource(id = trailingIcon),
+                        contentDescription = null,
+                        tint = Color.Unspecified
+                    )
+                }
+
+            }
+        } else null,
+        textStyle = TextStyle(
+            color = Color(0xFF52465F),
+            fontFamily = SfDisplay,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Normal,
+            textAlign = TextAlign.Start
+        ),
+        placeholder = {
+            Text(
+                text = placeHolder,
+                color = Color(0xFFC2B6CF),
+                fontFamily = SfDisplay,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Normal
+            )
+        },
+        value = value,
+        onValueChange = {
+            if (it.length <= characterLimit) {
+                onValueChanged(it)
+            }
+        },
+        enabled = enabled,
+        singleLine = singleLine,
+        keyboardOptions = KeyboardOptions(imeAction = if (onDone != null) ImeAction.Done else ImeAction.Next),
+        keyboardActions = KeyboardActions(
+            onDone = {
+                if (onDone != null) {
+                    onDone(value)
+                }
+            }
+        )
+    )
 }

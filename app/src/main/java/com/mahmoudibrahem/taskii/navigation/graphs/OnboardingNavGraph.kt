@@ -1,11 +1,9 @@
 package com.mahmoudibrahem.taskii.navigation.graphs
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.painterResource
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import com.mahmoudibrahem.taskii.R
@@ -30,7 +28,7 @@ fun NavGraphBuilder.onboardingNavGraph(navController: NavHostController) {
                             id = R.drawable.onboarding_1
                         ),
                         headText = "Hello!",
-                        bodyText = "Welcome!!! Do you want clear task super fast with Taski"
+                        bodyText = "Welcome!!! Do you want clear task super fast with Taskii"
                     ),
                     OnboardingPage(
                         image = painterResource(

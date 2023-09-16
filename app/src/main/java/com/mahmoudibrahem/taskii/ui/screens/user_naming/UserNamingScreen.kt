@@ -20,11 +20,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -51,7 +49,6 @@ import com.mahmoudibrahem.taskii.ui.theme.TextFieldColor
 import com.mahmoudibrahem.taskii.util.Constants.BOTTOM_BAR_GRAPH_ROUTE
 import com.mahmoudibrahem.taskii.util.Constants.ONBOARDING_GRAPH_ROUTE
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserNamingScreen(
     viewModel: UserNamingViewModel = hiltViewModel(),
@@ -62,10 +59,10 @@ fun UserNamingScreen(
             .fillMaxSize()
             .background(Color.White)
             .padding(
-                top = 98.dp,
+                top = 40.dp,
                 start = 24.dp,
                 end = 24.dp,
-                bottom = 48.dp
+                bottom = 24.dp
             )
             .scrollable(state = rememberScrollableState { it }, orientation = Orientation.Vertical)
     ) {
@@ -121,8 +118,9 @@ fun UserNamingScreen(
                     focusedBorderColor = TextFieldColor,
                     unfocusedBorderColor = TextFieldColor,
                     focusedPlaceholderColor = Color.Gray,
-                    unfocusedPlaceholderColor = Color.Gray
-
+                    unfocusedPlaceholderColor = Color.Gray,
+                    focusedContainerColor = TextFieldColor,
+                    unfocusedContainerColor = TextFieldColor
                 ),
                 modifier = Modifier
                     .fillMaxWidth()

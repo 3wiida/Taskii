@@ -105,6 +105,10 @@ dependencies {
     //Gson
     implementation("com.google.code.gson:gson:2.9.0")
 
+    //Moshi
+    implementation("com.squareup.moshi:moshi-kotlin:1.14.0")
+    kapt ("com.squareup.moshi:moshi-kotlin-codegen:1.8.0")
+
     //Date time picker
     implementation ("com.maxkeppeler.sheets-compose-dialogs:core:1.2.0")
 

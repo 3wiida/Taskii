@@ -2,7 +2,6 @@ package com.mahmoudibrahem.taskii.repository.database
 
 import com.mahmoudibrahem.taskii.model.CheckItem
 import com.mahmoudibrahem.taskii.model.Task
-import com.mahmoudibrahem.taskii.model.relations.TaskWithCheckItems
 
 interface DatabaseRepository {
     suspend fun upsertTask(task: Task)
@@ -11,9 +10,10 @@ interface DatabaseRepository {
     suspend fun getCheckItemsOfTask(taskId: Int): List<CheckItem>
     suspend fun searchTask(searchQuery: String): List<Task>
     suspend fun getLatestTaskId(): Int
-    suspend fun updateTaskProgress(taskId: Int, progress: Float)
     suspend fun createNewTask(task: Task, checkList: List<String>)
-    suspend fun getTasksWithCheckList(): List<TaskWithCheckItems>
-
     suspend fun saveTaskProcess(task: Task, checkItem: CheckItem)
+    suspend fun getTaskById(id: Int): Task
+    suspend fun deleteTask(id: Int)
+    suspend fun getCompletedTasks(): List<Task>
+    suspend fun getUnCompletedTasks(): List<Task>
 }

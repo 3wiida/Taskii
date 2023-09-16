@@ -19,5 +19,5 @@ data class CheckItem(
     val id: Int = 0,
     val taskId: Int,
     val content: String,
-    var isComplete: Boolean = false
+    val isComplete: Boolean = false
 )

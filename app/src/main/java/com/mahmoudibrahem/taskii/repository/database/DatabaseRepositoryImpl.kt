@@ -6,7 +6,6 @@ import com.mahmoudibrahem.taskii.data.local.dao.TasksDao
 import com.mahmoudibrahem.taskii.data.local.database.TaskiiDatabase
 import com.mahmoudibrahem.taskii.model.CheckItem
 import com.mahmoudibrahem.taskii.model.Task
-import com.mahmoudibrahem.taskii.model.relations.TaskWithCheckItems
 import javax.inject.Inject
 
 class DatabaseRepositoryImpl @Inject constructor(
@@ -39,9 +38,6 @@ class DatabaseRepositoryImpl @Inject constructor(
         return tasksDao.getLatestTaskId()
     }
 
-    override suspend fun updateTaskProgress(taskId: Int, progress: Float) {
-        tasksDao.updateTaskProgress(taskId, progress)
-    }
 
     override suspend fun createNewTask(task: Task, checkList: List<String>) {
         db.withTransaction {
@@ -54,14 +50,26 @@ class DatabaseRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getTasksWithCheckList(): List<TaskWithCheckItems> {
-        return tasksDao.getTasksWithCheckList()
-    }
-
     override suspend fun saveTaskProcess(task: Task, checkItem: CheckItem) {
         db.withTransaction {
             upsertCheckItem(checkItem)
             upsertTask(task)
         }
+    }
+
+    override suspend fun getTaskById(id: Int): Task {
+        return tasksDao.getTaskById(id)
+    }
+
+    override suspend fun deleteTask(id: Int) {
+        tasksDao.deleteTask(id)
+    }
+
+    override suspend fun getCompletedTasks(): List<Task> {
+        return tasksDao.getCompletedTasks()
+    }
+
+    override suspend fun getUnCompletedTasks(): List<Task> {
+        return tasksDao.getUnCompletedTasks()
     }
 }

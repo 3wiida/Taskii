@@ -2,12 +2,8 @@ package com.mahmoudibrahem.taskii.data.local.dao
 
 import androidx.room.Dao
 import androidx.room.Query
-import androidx.room.Transaction
-import androidx.room.Update
 import androidx.room.Upsert
-import com.mahmoudibrahem.taskii.model.CheckItem
 import com.mahmoudibrahem.taskii.model.Task
-import com.mahmoudibrahem.taskii.model.relations.TaskWithCheckItems
 
 @Dao
 interface TasksDao {
@@ -24,9 +20,17 @@ interface TasksDao {
     suspend fun getLatestTaskId(): Int
 
     @Query("UPDATE Task SET progress=:progress WHERE id=:taskId")
-    suspend fun updateTaskProgress(taskId: Int,progress:Float)
+    suspend fun updateTaskProgress(taskId: Int, progress: Float)
 
-    @Transaction
-    @Query("SELECT * FROM Task")
-    suspend fun getTasksWithCheckList():List<TaskWithCheckItems>
+    @Query("SELECT * FROM Task WHERE id=:id")
+    suspend fun getTaskById(id: Int): Task
+
+    @Query("DELETE FROM Task WHERE id=:id")
+    suspend fun deleteTask(id: Int)
+
+    @Query("SELECT * FROM Task WHERE progress=1.0")
+    suspend fun getCompletedTasks(): List<Task>
+
+    @Query("SELECT * FROM Task WHERE progress<1.0")
+    suspend fun getUnCompletedTasks(): List<Task>
 }

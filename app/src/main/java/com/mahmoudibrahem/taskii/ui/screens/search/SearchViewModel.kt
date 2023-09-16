@@ -1,13 +1,12 @@
 package com.mahmoudibrahem.taskii.ui.screens.search
 
+import androidx.compose.runtime.mutableStateListOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mahmoudibrahem.taskii.model.Task
 import com.mahmoudibrahem.taskii.repository.database.DatabaseRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -15,12 +14,12 @@ import javax.inject.Inject
 class SearchViewModel @Inject constructor(private val databaseRepository: DatabaseRepository) :
     ViewModel() {
 
-    private val _searchResults = MutableStateFlow<List<Task>>(emptyList())
-    val searchResults = _searchResults.asStateFlow()
+    val searchResults = mutableStateListOf<Task>()
 
     fun searchForTasks(searchQuery: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            _searchResults.value = databaseRepository.searchTask(searchQuery)
+            searchResults.clear()
+            searchResults.addAll(databaseRepository.searchTask(searchQuery))
         }
     }
 }

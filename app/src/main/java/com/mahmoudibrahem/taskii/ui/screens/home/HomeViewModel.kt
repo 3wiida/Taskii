@@ -1,23 +1,18 @@
 package com.mahmoudibrahem.taskii.ui.screens.home
 
-import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mahmoudibrahem.taskii.model.CheckItem
 import com.mahmoudibrahem.taskii.model.Task
-import com.mahmoudibrahem.taskii.model.relations.TaskWithCheckItems
 import com.mahmoudibrahem.taskii.repository.data_store.DataStoreRepository
 import com.mahmoudibrahem.taskii.repository.database.DatabaseRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
-import java.time.LocalDateTime
 import javax.inject.Inject
 
 @HiltViewModel
@@ -36,10 +31,13 @@ class HomeViewModel @Inject constructor(
         emit(result)
     }
 
-    fun getTasks() {
+    fun getUncompletedTasks() {
         viewModelScope.launch(Dispatchers.IO) {
             tasks.clear()
-            tasks.addAll(databaseRepository.getAllTasks())
+            tasks.addAll(databaseRepository.getUnCompletedTasks())
+            if(tasks.isNotEmpty()){
+                getCheckListByTaskId(taskId = tasks[0].id)
+            }
         }
     }
 
@@ -72,7 +70,5 @@ class HomeViewModel @Inject constructor(
         return completedItems.div(totalItems.toFloat())
     }
 
-    fun getFinalDateFormat(dateTime: LocalDateTime): String {
-        return "${dateTime.month.name} ${dateTime.dayOfMonth} at ${dateTime.hour}:${dateTime.minute}"
-    }
+
 }

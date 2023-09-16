@@ -11,6 +11,6 @@ data class Task(
     val name: String,
     val description: String,
     val deadline: LocalDateTime,
-    var progress: Float,
+    val progress: Float,
     val isCompleted: Boolean = false,
 )

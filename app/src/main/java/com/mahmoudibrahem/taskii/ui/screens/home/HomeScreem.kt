@@ -5,7 +5,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -32,6 +31,7 @@ import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.Card
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
@@ -67,7 +67,6 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.toLowerCase
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -100,8 +99,12 @@ fun HomeScreen(
     Scaffold(
         bottomBar = {
             AppBottomBar(
+                selectedScreen = 0,
                 onAddClicked = {
                     navController.navigate(route = HomeScreens.CreateTask.route)
+                },
+                onAnalyticsClicked = {
+                    navController.navigate(route = HomeScreens.Analytics.route)
                 }
             )
         }
@@ -118,8 +121,6 @@ fun HomeScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             HomeTopBar(
-                onMenuButtonClicked = {},
-                onCalendarButtonClicked = {},
                 onSearchButtonClicked = {
                     navController.navigate(
                         route = HomeScreens.Search.route
@@ -138,11 +139,28 @@ fun HomeScreen(
                 onTaskClicked = { index, id ->
                     viewModel.getCheckListByTaskId(id)
                     selectedTaskIndex = index
+                },
+                onGoClicked = { task ->
+                    navController.navigate(
+                        route = HomeScreens.TaskDetails.route.replace(
+                            "{task_id}",
+                            task.id.toString()
+                        )
+                    )
+                },
+                onTaskCompleted = {
+                    viewModel.getUncompletedTasks()
+                    selectedTaskIndex=0
                 }
             )
             Spacer(modifier = Modifier.height(24.dp))
-            AnimatedVisibility(visible = viewModel.tasks.isNotEmpty(), enter = fadeIn(), exit = fadeOut()) {
+            AnimatedVisibility(
+                visible = viewModel.tasks.isNotEmpty(),
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
                 CheckListSection(
+                    headerText = "Task Checklist",
                     checkList = viewModel.selectedTaskCheckList,
                     onCompleteCheckItem = { item, isCompleted, index ->
                         viewModel.saveTaskProcess(
@@ -157,8 +175,7 @@ fun HomeScreen(
             DisposableEffect(key1 = lifecycleOwner) {
                 val observer = LifecycleEventObserver { _, event ->
                     if (event == Lifecycle.Event.ON_RESUME) {
-                        viewModel.getTasks()
-                        viewModel.getCheckListByTaskId(taskId = if (viewModel.tasks.isEmpty()) 1 else viewModel.tasks[selectedTaskIndex].id)
+                        viewModel.getUncompletedTasks()
                     }
                 }
                 lifecycleOwner.lifecycle.addObserver(observer)
@@ -172,46 +189,44 @@ fun HomeScreen(
 
 @Composable
 fun HomeTopBar(
-    onMenuButtonClicked: () -> Unit = {},
     onSearchButtonClicked: () -> Unit = {},
-    onCalendarButtonClicked: () -> Unit = {}
 ) {
     Box(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = buildAnnotatedString {
+                withStyle(
+                    SpanStyle(
+                        color = AppMainColor,
+                        fontFamily = SfDisplay,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 28.sp
+                    )
+                ) {
+                    append("T")
+                }
+                withStyle(
+                    SpanStyle(
+                        color = Color.Black,
+                        fontFamily = SfDisplay,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 28.sp
+                    )
+                ) {
+                    append("askii")
+                }
+            },
+            modifier = Modifier.align(Alignment.CenterStart)
+        )
+
         IconButton(
-            onClick = { onMenuButtonClicked() },
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .offset(x = (-16).dp)
+            onClick = { onSearchButtonClicked() },
+            modifier = Modifier.align(Alignment.CenterEnd)
         ) {
             Icon(
-                painter = painterResource(id = R.drawable.menu_ic),
+                painter = painterResource(id = R.drawable.search_ic),
                 contentDescription = null,
                 tint = Color.Unspecified
             )
-        }
-        Row(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .offset(x = (16).dp),
-        ) {
-            IconButton(
-                onClick = { onSearchButtonClicked() }
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.search_ic),
-                    contentDescription = null,
-                    tint = Color.Unspecified
-                )
-            }
-            IconButton(
-                onClick = { onCalendarButtonClicked() }
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.calendar_ic),
-                    contentDescription = null,
-                    tint = Color.Unspecified
-                )
-            }
         }
     }
 }
@@ -239,7 +254,7 @@ fun GreetingSection(
                     SpanStyle(
                         fontFamily = SfDisplay,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 28.sp,
+                        fontSize = 24.sp,
                         color = Color.Black
                     )
                 ) {
@@ -249,7 +264,7 @@ fun GreetingSection(
                     SpanStyle(
                         fontFamily = SfDisplay,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 28.sp,
+                        fontSize = 24.sp,
                         color = AppMainColor
                     )
                 ) {
@@ -259,11 +274,11 @@ fun GreetingSection(
                     SpanStyle(
                         fontFamily = SfDisplay,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 28.sp,
+                        fontSize = 24.sp,
                         color = Color.Black
                     )
                 ) {
-                    append(" task\n today")
+                    append(" uncompleted\n tasks")
                 }
             }
         )
@@ -274,7 +289,9 @@ fun GreetingSection(
 fun TasksSection(
     tasks: List<Task>,
     selectedItemIndex: Int = 0,
-    onTaskClicked: (index: Int, id: Int) -> Unit
+    onTaskClicked: (index: Int, id: Int) -> Unit,
+    onGoClicked: (task: Task) -> Unit,
+    onTaskCompleted: (task: Task) -> Unit
 ) {
     LazyRow(
         modifier = Modifier.fillMaxWidth(),
@@ -284,7 +301,9 @@ fun TasksSection(
             TaskCard(
                 task = tasks[index],
                 onTaskClicked = { id -> onTaskClicked(index, id) },
-                isSelected = index == selectedItemIndex
+                isSelected = index == selectedItemIndex,
+                onGoClicked = { task -> onGoClicked(task) },
+                onTaskCompleted = {task ->  onTaskCompleted(task)}
             )
         }
     }
@@ -296,7 +315,9 @@ fun TasksSection(
 fun LazyItemScope.TaskCard(
     task: Task,
     isSelected: Boolean = true,
-    onTaskClicked: (id: Int) -> Unit
+    onTaskClicked: (id: Int) -> Unit,
+    onGoClicked: (task: Task) -> Unit,
+    onTaskCompleted:(task:Task) -> Unit
 ) {
     val borderColor = animateColorAsState(
         targetValue = if (isSelected) AppSecondaryColor else Color.Transparent,
@@ -308,6 +329,9 @@ fun LazyItemScope.TaskCard(
         label = "",
         animationSpec = tween(800)
     )
+    if (progressValue.value == 1.0f) {
+        onTaskCompleted(task)
+    }
     Surface(
         modifier = Modifier
             .animateItemPlacement()
@@ -335,15 +359,40 @@ fun LazyItemScope.TaskCard(
             verticalArrangement = Arrangement.SpaceEvenly,
             horizontalAlignment = Alignment.Start
         ) {
-            Text(
-                text = task.name,
-                fontFamily = SfDisplay,
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-                overflow = TextOverflow.Ellipsis,
-                color = Color.Black,
-                maxLines = 1
-            )
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = task.name,
+                    fontFamily = SfDisplay,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    overflow = TextOverflow.Ellipsis,
+                    color = Color.Black,
+                    maxLines = 1,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(end = 30.dp)
+                )
+                ClickableText(
+                    text = buildAnnotatedString {
+                        withStyle(
+                            SpanStyle(
+                                fontSize = 12.sp,
+                                fontFamily = SfDisplay,
+                                color = AppGreenColor,
+                                fontWeight = FontWeight.Medium
+                            )
+                        ) {
+                            append("show")
+                        }
+
+                    },
+                    onClick = { onGoClicked(task) },
+                    modifier = Modifier.align(Alignment.TopEnd)
+                )
+            }
+
             Text(
                 text = task.description,
                 fontFamily = SfDisplay,
@@ -400,6 +449,7 @@ fun LazyItemScope.TaskCard(
 
 @Composable
 fun CheckListSection(
+    headerText: String,
     checkList: List<CheckItem>,
     onCompleteCheckItem: (CheckItem, Boolean, Int) -> Unit
 ) {
@@ -408,7 +458,7 @@ fun CheckListSection(
         horizontalAlignment = Alignment.Start,
     ) {
         Text(
-            text = "Your checklist",
+            text = headerText,
             fontFamily = SfDisplay,
             fontWeight = FontWeight.Bold,
             fontSize = 20.sp,
@@ -490,13 +540,15 @@ fun LazyItemScope.CheckListItem(
             color = Color.Black,
             maxLines = 1,
             modifier = Modifier.drawBehind {
-                this.drawLine(
-                    color = Color.Gray,
-                    start = Offset(0f, size.height / 2),
-                    end = Offset(size.width * lineScale.value, size.height / 2),
-                    strokeWidth = 5f,
-                    cap = StrokeCap.Round
-                )
+                if (lineScale.value > 0f) {
+                    drawLine(
+                        color = Color.Gray,
+                        start = Offset(0f, size.height / 2),
+                        end = Offset(size.width * lineScale.value, size.height / 2),
+                        strokeWidth = 5f,
+                        cap = StrokeCap.Round
+                    )
+                }
             }
         )
     }
@@ -504,6 +556,7 @@ fun LazyItemScope.CheckListItem(
 
 @Composable
 fun AppBottomBar(
+    selectedScreen: Int = 0,
     onHomeClicked: () -> Unit = {},
     onAnalyticsClicked: () -> Unit = {},
     onAddClicked: () -> Unit = {},
@@ -557,7 +610,7 @@ fun AppBottomBar(
                     Icon(
                         painter = painterResource(id = R.drawable.home_ic),
                         contentDescription = null,
-                        tint = Color.Unspecified,
+                        tint = if (selectedScreen == 0) Color.Unspecified else Color(0xFFE0C8FE),
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -569,7 +622,7 @@ fun AppBottomBar(
                     Icon(
                         painter = painterResource(id = R.drawable.analytics_ic),
                         contentDescription = null,
-                        tint = Color.Unspecified,
+                        tint = if (selectedScreen == 1) Color.Unspecified else Color(0xFFE0C8FE),
                         modifier = Modifier.size(22.dp)
                     )
                 }
