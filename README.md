@@ -24,7 +24,7 @@ Available on MediaFire Store and soon also on Google Play.
 
 ## 📚 Android tech stack
 
-One of the main goals of Alkaa is to use all the latest libraries and tools available.
+One of the main goals of Taskii is to use all the latest libraries and tools available.
 
 ### 🧑🏻‍💻 Android development
 
